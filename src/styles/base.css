@@ -1,0 +1,152 @@
+/* ==========================================================
+   Fruitly: token & elemen dasar
+   Palet diambil dari referensi: merah tua, hijau limau, hijau zaitun.
+   ========================================================== */
+:root {
+  --white: #ffffff;
+  --paper: #fbfcf6;
+  --mist: #f1f5e1;
+  --blush: #fbeceb;
+  --lime: #93b22d;
+  --lime-strong: #7a9619;
+  --olive: #64800b;
+  --olive-deep: #4b6208;
+  --red: #d3202a;
+  --red-dark: #940d11;
+  --ink: #1e2514;
+  --muted: #59644d;
+  --line: #e4e9d3;
+
+  --ease: cubic-bezier(0.22, 0.8, 0.24, 1);
+  --header-h: 80px;
+
+  font-family: 'Poppins', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  color: var(--ink);
+  background: var(--white);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: calc(var(--header-h) + 16px); }
+body { margin: 0; min-width: 320px; font-size: 1.0625rem; line-height: 1.65; overflow-x: hidden; }
+img, svg { max-width: 100%; }
+button, input { font: inherit; }
+button { cursor: pointer; }
+a { color: inherit; text-decoration: none; }
+h1, h2, h3, p { margin-top: 0; }
+::selection { background: var(--lime); color: var(--ink); }
+
+:focus-visible { outline: 3px solid var(--red); outline-offset: 3px; border-radius: 6px; }
+
+.container { width: min(1200px, calc(100% - 2.5rem)); margin-inline: auto; }
+.visually-hidden { position: absolute !important; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); clip-path: inset(50%); white-space: nowrap; }
+.skip-link { position: fixed; left: 1rem; top: -4rem; z-index: 100; padding: .7rem 1rem; border-radius: 12px; background: var(--ink); color: #fff; transition: top .2s; }
+.skip-link:focus { top: 1rem; }
+
+/* ---------- Tipografi ---------- */
+.display, .display-sm {
+  margin: 0 0 1.5rem;
+  font-weight: 500;
+  line-height: 1.02;
+  letter-spacing: -0.035em;
+  color: var(--olive);
+}
+.display { font-size: clamp(3.4rem, 8.4vw, 7.4rem); }
+.display-sm { font-size: clamp(3rem, 8vw, 6.6rem); }
+
+.h2 {
+  margin: 0;
+  font-size: clamp(2.3rem, 5vw, 4rem);
+  font-weight: 500;
+  line-height: 1.06;
+  letter-spacing: -0.03em;
+  color: var(--olive);
+}
+.h2.on-dark { color: #fff; }
+
+.lead { margin: 0; max-width: 33rem; font-size: clamp(1.06rem, 1.4vw, 1.22rem); line-height: 1.7; color: var(--muted); }
+
+.pill {
+  display: inline-block;
+  padding: .28em .8em .34em;
+  border-radius: 22px;
+  color: #fff;
+  font-size: clamp(1.5rem, 2.2vw, 2rem);
+  font-weight: 400;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+}
+.pill-red { background: var(--red-dark); }
+.pill-lime { background: var(--lime-strong); }
+
+.text-link { display: inline-flex; align-items: center; gap: .6rem; font-weight: 600; color: var(--olive); }
+.text-link svg { transition: transform .35s var(--ease); }
+.text-link:hover svg { transform: translateX(5px); }
+.text-link span { background: linear-gradient(currentColor, currentColor) 0 100% / 0 2px no-repeat; padding-bottom: 2px; transition: background-size .4s var(--ease); }
+.text-link:hover span { background-size: 100% 2px; }
+
+.inline-link { color: var(--olive); font-weight: 600; text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 4px; transition: color .2s; }
+.inline-link:hover { color: var(--red); }
+
+.link-button { display: inline-flex; align-items: center; gap: .45rem; padding: .25rem 0; border: 0; background: linear-gradient(currentColor, currentColor) 0 100% / 100% 2px no-repeat; color: var(--olive); font-weight: 600; transition: background-size .35s var(--ease), color .2s; }
+.link-button:hover:not(:disabled) { background-size: 0 2px; color: var(--red); }
+.link-button:disabled { opacity: .45; cursor: not-allowed; }
+
+/* ---------- Tombol ---------- */
+.btn {
+  --wipe: var(--olive);
+  position: relative;
+  isolation: isolate;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .6rem;
+  padding: 1rem 1.7rem;
+  border: 0;
+  border-radius: 999px;
+  overflow: hidden;
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.1;
+  white-space: nowrap;
+  transition: transform .35s var(--ease), box-shadow .35s var(--ease), color .3s;
+}
+.btn::before { content: ''; position: absolute; inset: 0; z-index: -1; background: var(--wipe); transform: translateX(-102%); transition: transform .55s var(--ease); }
+.btn:hover:not(:disabled)::before, .btn:focus-visible::before { transform: none; }
+.btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 14px 26px -12px rgba(30, 37, 20, .55); }
+.btn:active:not(:disabled) { transform: translateY(0) scale(.97); }
+.btn svg { flex-shrink: 0; transition: transform .35s var(--ease); }
+.btn:hover:not(:disabled) svg { transform: translate(3px, -3px); }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+
+.btn-red { background: var(--red-dark); --wipe: var(--olive); }
+.btn-olive { background: var(--olive); --wipe: var(--red-dark); }
+.btn-lime { background: var(--lime); color: #17200a; --wipe: #fff; }
+.btn-ghost { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 2px var(--ink); --wipe: var(--ink); }
+.btn-ghost:hover:not(:disabled) { color: #fff; box-shadow: inset 0 0 0 2px var(--ink), 0 14px 26px -12px rgba(30, 37, 20, .55); }
+.btn-sm { padding: .72rem 1.25rem; font-size: .93rem; }
+.btn-block { width: 100%; padding: 1.1rem 1.5rem; }
+
+/* ---------- Garis dengan titik ujung (motif referensi) ---------- */
+.rule { --rc: var(--red); position: relative; display: block; height: 2px; background: var(--rc); }
+.rule > span { position: absolute; right: 0; top: 50%; width: 15px; height: 15px; border: 3px solid var(--rc); border-radius: 50%; background: #fff; transform: translate(50%, -50%); }
+.rule-red { --rc: var(--red); }
+.rule-lime { --rc: var(--lime); }
+.rule-olive { --rc: var(--olive); }
+.rule-rtl > span { right: auto; left: 0; transform: translate(-50%, -50%); }
+
+/* ---------- Sudut bingkai pindai ---------- */
+.corner { position: absolute; width: clamp(24px, 3vw, 36px); aspect-ratio: 1; border: 0 solid var(--cc, var(--olive)); pointer-events: none; transition: transform .5s var(--ease), width .5s var(--ease), opacity .4s; }
+.corner.tl { top: 0; left: 0; border-width: 4px 0 0 4px; border-top-left-radius: 14px; }
+.corner.tr { top: 0; right: 0; border-width: 4px 4px 0 0; border-top-right-radius: 14px; }
+.corner.bl { bottom: 0; left: 0; border-width: 0 0 4px 4px; border-bottom-left-radius: 14px; }
+.corner.br { bottom: 0; right: 0; border-width: 0 4px 4px 0; border-bottom-right-radius: 14px; }
+
+/* ---------- Dekorasi ---------- */
+.deco { position: absolute; z-index: 0; pointer-events: none; }
+.deco .slice, .deco .doodle { display: block; width: 100%; height: auto; pointer-events: auto; }
+.doodle { color: var(--red); }
+.drift { translate: 0 var(--drift, 0px); }
