@@ -1,0 +1,25 @@
+{
+  "experiment": "v2_transfer",
+  "model_name": "mobilenetv2",
+  "model_file": "fruitly_best.keras",
+  "labels": {
+    "0": "fresh",
+    "1": "stale"
+  },
+  "positive_class": "stale",
+  "threshold": 0.5,
+  "threshold_selection": "validation balanced_accuracy",
+  "input": {
+    "size": [
+      224,
+      224
+    ],
+    "channels": 3,
+    "dtype": "float32",
+    "range": "0-255 (TANPA dibagi 255)"
+  },
+  "resize": "PIL Image.resize((224,224), Image.BILINEAR) setelah convert(\"RGB\")",
+  "preprocessing_inside_model": true,
+  "output": "P(stale) sigmoid",
+  "created_at": "2026-11-22T16:15:17"
+}

@@ -29,7 +29,7 @@ export function Home() {
             <h1 className="display"><Lines lines={['Buahnya', 'masih', 'segar?']} delay={80} /></h1>
             <Reveal as="p" className="lead" delay={460}>Foto buahnya, unggah ke Fruitly, lalu lihat hasilnya: segar atau tidak.</Reveal>
             <Reveal className="hero-actions" delay={580}>
-              <Link className="btn btn-red" to="/detect"><span>Mulai deteksi</span><ArrowUpRight size={20} /></Link>
+              <Link className="btn btn-red" to="/detect"><span>Coba Fruitly</span><ArrowUpRight size={20} /></Link>
               <Link className="btn btn-ghost" to="/guide"><span>Baca panduan</span></Link>
             </Reveal>
           </div>

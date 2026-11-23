@@ -5,7 +5,6 @@ import { LogoMark } from './Illustrations';
 
 const links = [
   { to: '/', label: 'Beranda', end: true },
-  { to: '/detect', label: 'Deteksi', end: false },
   { to: '/about', label: 'Tentang', end: false },
   { to: '/guide', label: 'Panduan', end: false },
 ];
@@ -42,12 +41,12 @@ export function Navbar() {
             </NavLink>
           ))}
           <Link className="btn btn-olive nav-cta-mobile" to="/detect" onClick={() => setOpen(false)}>
-            <span>Mulai deteksi</span><ArrowUpRight size={18} />
+            <span>Coba Fruitly</span><ArrowUpRight size={18} />
           </Link>
         </nav>
 
         <Link className="btn btn-olive btn-sm header-cta" to="/detect">
-          <span>Mulai deteksi</span><ArrowUpRight size={18} />
+          <span>Coba Fruitly</span><ArrowUpRight size={18} />
         </Link>
 
         <button type="button" className="menu-toggle" onClick={() => setOpen(!open)} aria-label={open ? 'Tutup menu' : 'Buka menu'} aria-expanded={open} aria-controls="menu-utama">

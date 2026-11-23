@@ -11,7 +11,7 @@ export function Footer() {
         </div>
         <nav className="footer-links" aria-label="Tautan footer">
           <Link to="/">Beranda</Link>
-          <Link to="/detect">Deteksi</Link>
+          <Link to="/detect">Coba Fruitly</Link>
           <Link to="/about">Tentang</Link>
           <Link to="/guide">Panduan</Link>
         </nav>

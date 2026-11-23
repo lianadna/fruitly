@@ -1,16 +1,21 @@
-import { useEffect, useRef, useState } from 'react';
-import type { ChangeEvent, DragEvent } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import type { ChangeEvent } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Camera, CircleAlert, RotateCcw, ScanLine, X } from 'lucide-react';
-import { isDemoMode, predictFruit } from '../services/prediction';
-import type { FruitLabel, Prediction } from '../services/prediction';
-import { AppleScan, ScanOverlay } from '../components/AppleScan';
-import { Doodle, Slice } from '../components/Illustrations';
-import { Drift, Lines, Reveal } from '../components/Reveal';
+import { Camera, CircleAlert, RotateCcw, Upload, X } from 'lucide-react';
+import { predictFruit } from '../services/prediction';
+import type { Prediction } from '../services/prediction';
+import { ScanOverlay } from '../components/AppleScan';
+import { InstallDialog } from '../components/InstallDialog';
+import { LogoMark } from '../components/Illustrations';
+import { installWasSkipped, isIos, isStandalone, rememberInstallSkipped, useCanInstall } from '../lib/pwa';
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const MIN_SCAN_MS = 1600; // supaya animasi pindai sempat terlihat walau hasilnya cepat
+const MAX_CAPTURE = 1280; // sisi terpanjang hasil jepretan, supaya ukuran file tetap kecil
+
+type Facing = 'environment' | 'user';
+type CamState = 'starting' | 'live' | 'blocked' | 'unsupported';
 
 const wait = (ms: number) => new Promise<void>((resolve) => window.setTimeout(resolve, ms));
 
@@ -32,19 +37,73 @@ function CountUp({ value }: { value: number }) {
   return <>{shown.toFixed(1)}%</>;
 }
 
+/** Ikon balik kamera (dua panah melingkar di sekitar lensa). */
+function FlipIcon({ size = 24 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M11 19H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5" />
+      <path d="M13 5h7a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-5" />
+      <circle cx="12" cy="12" r="3" />
+      <path d="m18 22-3-3 3-3" />
+      <path d="m6 2 3 3-3 3" />
+    </svg>
+  );
+}
+
 export function Detect() {
-  const inputRef = useRef<HTMLInputElement>(null);
-  const cameraRef = useRef<HTMLInputElement>(null);
-  const resultRef = useRef<HTMLElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const frameRef = useRef<HTMLDivElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const runRef = useRef(0);
+
+  const [facing, setFacing] = useState<Facing>('environment');
+  const [camState, setCamState] = useState<CamState>('starting');
+  const [attempt, setAttempt] = useState(0);
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
-  const [dragging, setDragging] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState('');
   const [result, setResult] = useState<Prediction | null>(null);
   const [fillBar, setFillBar] = useState(false);
-  const [demoLabel, setDemoLabel] = useState<FruitLabel>('fresh');
 
+  /* ---------- Dialog install ---------- */
+  const canInstall = useCanInstall();
+  const [installDone, setInstallDone] = useState(() => installWasSkipped());
+  const installAvailable = !isStandalone() && (canInstall || isIos());
+  const installOpen = installAvailable && !installDone;
+  const finishInstall = useCallback(() => { rememberInstallSkipped(); setInstallDone(true); }, []);
+
+  /* ---------- Layar penuh: kunci gulir halaman ---------- */
+  useEffect(() => {
+    document.documentElement.classList.add('cam-lock');
+    return () => document.documentElement.classList.remove('cam-lock');
+  }, []);
+
+  /* ---------- Kamera ---------- */
+  useEffect(() => {
+    if (file || installOpen) return;
+    if (!navigator.mediaDevices?.getUserMedia) { setCamState('unsupported'); return; }
+    let cancelled = false;
+    setCamState('starting');
+    navigator.mediaDevices
+      .getUserMedia({ video: { facingMode: { ideal: facing }, width: { ideal: 1280 }, height: { ideal: 1280 } }, audio: false })
+      .then((stream) => {
+        if (cancelled) { stream.getTracks().forEach((track) => track.stop()); return; }
+        streamRef.current = stream;
+        const video = videoRef.current;
+        if (video) { video.srcObject = stream; video.play().catch(() => {}); }
+        setCamState('live');
+      })
+      .catch(() => { if (!cancelled) setCamState('blocked'); });
+    return () => {
+      cancelled = true;
+      streamRef.current?.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    };
+  }, [facing, file, installOpen, attempt]);
+
+  /* ---------- Pratinjau foto ---------- */
   useEffect(() => {
     if (!file) { setPreview(null); return; }
     const url = URL.createObjectURL(file);
@@ -56,14 +115,22 @@ export function Detect() {
     setFillBar(false);
     if (!result) return;
     const id = window.setTimeout(() => setFillBar(true), 80);
-    // Kalau panel hasil tidak terlihat penuh, gulung ke sana supaya hasilnya tidak terlewat.
-    const panel = resultRef.current?.closest('.result-panel');
-    if (panel) {
-      const rect = panel.getBoundingClientRect();
-      if (rect.top < 72 || rect.bottom > window.innerHeight) panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
     return () => window.clearTimeout(id);
   }, [result]);
+
+  /* ---------- Analisis ---------- */
+  const analyze = async (target: File) => {
+    const run = ++runRef.current;
+    setProcessing(true); setError(''); setResult(null);
+    try {
+      const [prediction] = await Promise.all([predictFruit(target), wait(MIN_SCAN_MS)]);
+      if (run === runRef.current) setResult(prediction);
+    } catch (err) {
+      if (run === runRef.current) setError(err instanceof Error ? err.message : 'Foto belum bisa diperiksa. Coba lagi sebentar lagi.');
+    } finally {
+      if (run === runRef.current) setProcessing(false);
+    }
+  };
 
   const selectFile = (candidate?: File) => {
     setError(''); setResult(null);
@@ -71,156 +138,150 @@ export function Detect() {
     if (!ALLOWED_TYPES.includes(candidate.type)) { setError('Format belum didukung. Pakai foto JPG, PNG, atau WEBP.'); return; }
     if (candidate.size > MAX_FILE_SIZE) { setError('Ukuran foto lebih dari 5 MB. Coba foto yang lebih kecil.'); return; }
     setFile(candidate);
+    void analyze(candidate);
   };
-  const onInputChange = (event: ChangeEvent<HTMLInputElement>) => { selectFile(event.target.files?.[0]); event.target.value = ''; };
-  const onDrop = (event: DragEvent<HTMLElement>) => { event.preventDefault(); setDragging(false); selectFile(event.dataTransfer.files[0]); };
-  const reset = () => { setFile(null); setError(''); setResult(null); setProcessing(false); };
 
-  const analyze = async () => {
-    if (!file || processing) return;
-    setProcessing(true); setError(''); setResult(null);
-    try {
-      const [prediction] = await Promise.all([predictFruit(file), wait(MIN_SCAN_MS)]);
-      setResult(prediction);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Foto belum bisa diperiksa. Coba lagi sebentar lagi.');
-    } finally {
-      setProcessing(false);
-    }
+  const onInputChange = (event: ChangeEvent<HTMLInputElement>) => { selectFile(event.target.files?.[0]); event.target.value = ''; };
+
+  const reset = () => { runRef.current += 1; setFile(null); setResult(null); setError(''); setProcessing(false); };
+
+  /** Ambil bagian video yang ada di dalam bingkai, persis seperti yang terlihat pengguna. */
+  const capture = () => {
+    const video = videoRef.current;
+    const frame = frameRef.current;
+    if (!video || !frame || camState !== 'live' || !video.videoWidth) return;
+
+    const vr = video.getBoundingClientRect();
+    const fr = frame.getBoundingClientRect();
+    const scale = Math.max(vr.width / video.videoWidth, vr.height / video.videoHeight); // object-fit: cover
+    const offX = (vr.width - video.videoWidth * scale) / 2;
+    const offY = (vr.height - video.videoHeight * scale) / 2;
+    const sx = Math.max(0, (fr.left - vr.left - offX) / scale);
+    const sy = Math.max(0, (fr.top - vr.top - offY) / scale);
+    const sw = Math.min(video.videoWidth - sx, fr.width / scale);
+    const sh = Math.min(video.videoHeight - sy, fr.height / scale);
+
+    const out = Math.min(MAX_CAPTURE, Math.round(Math.max(sw, sh)));
+    const canvas = document.createElement('canvas');
+    canvas.width = out; canvas.height = out;
+    canvas.getContext('2d')?.drawImage(video, sx, sy, sw, sh, 0, 0, out, out);
+    canvas.toBlob((blob) => {
+      if (!blob) { setError('Foto belum bisa diambil. Coba lagi.'); return; }
+      selectFile(new File([blob], `fruitly-${Date.now()}.jpg`, { type: 'image/jpeg' }));
+    }, 'image/jpeg', 0.92);
   };
 
   const fresh = result?.label === 'fresh';
+  const hasPhoto = file !== null;
+  const camBlocked = camState === 'blocked' || camState === 'unsupported';
 
   return (
-    <div className="detect-page">
-      <section className="page-head">
-        <Drift className="deco head-orange" speed={0.12}><Slice kind="orange" className="slice" /></Drift>
-        <Drift className="deco head-cherry" speed={0.06}><Doodle kind="cherry" className="doodle" /></Drift>
-        <div className="container">
-          <h1 className="display-sm"><Lines lines={['Deteksi kesegaran buah']} /></h1>
-          <Reveal as="p" className="lead" delay={300}>Unggah satu foto buah. Hasilnya langsung tampil di sebelahnya.</Reveal>
-        </div>
-      </section>
+    <div className="cam-page">
+      <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={onInputChange} className="visually-hidden" aria-label="Pilih foto buah dari galeri" tabIndex={-1} />
 
-      <section className="workspace">
-        <div className="container workspace-grid">
-          {/* ------------- Unggah ------------- */}
-          <Reveal as="div" variant="left" className="panel upload-panel">
-            <h2 className="panel-title">Foto buah</h2>
+      {/* ---------- Layar kamera / foto ---------- */}
+      <div className="cam-stage">
+        <video ref={videoRef} className={`cam-video ${facing === 'user' ? 'is-mirrored' : ''} ${camState === 'live' && !hasPhoto ? 'is-live' : ''}`} playsInline muted autoPlay aria-label="Pratinjau kamera" />
 
-            <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={onInputChange} className="visually-hidden" aria-label="Pilih foto buah" tabIndex={-1} />
-            <input ref={cameraRef} type="file" accept="image/*" capture="environment" onChange={onInputChange} className="visually-hidden" aria-label="Ambil foto buah dengan kamera" tabIndex={-1} />
-
-            {!file ? (
-              <div
-                className={`dropzone ${dragging ? 'is-dragging' : ''}`}
-                role="button"
-                tabIndex={0}
-                aria-label="Pilih foto buah dari perangkat"
-                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); inputRef.current?.click(); } }}
-                onClick={() => inputRef.current?.click()}
-                onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
-                onDragLeave={(e) => { e.preventDefault(); setDragging(false); }}
-                onDrop={onDrop}
-              >
-                <i className="corner tl" /><i className="corner tr" /><i className="corner bl" /><i className="corner br" />
-                <Doodle kind="apple" className="doodle dropzone-apple" />
-                <h3><span className="hide-touch">Seret foto ke sini</span><span className="show-touch">Unggah foto buah</span></h3>
-                <p><span className="hide-touch">atau pilih dari perangkatmu</span><span className="show-touch">dari galeri atau kamera</span></p>
-                <div className="dropzone-actions">
-                  <span className="btn btn-olive btn-sm"><span>Pilih foto</span></span>
-                  <button type="button" className="btn btn-ghost btn-sm only-touch" onClick={(e) => { e.stopPropagation(); cameraRef.current?.click(); }}>
-                    <Camera size={18} /><span>Ambil foto</span>
-                  </button>
-                </div>
-                <small>JPG, PNG, atau WEBP. Maksimal 5 MB.</small>
+        {!hasPhoto && (
+          <div className="cam-guide">
+            {camBlocked ? (
+              <div className="cam-message" role="status">
+                <Camera size={34} aria-hidden="true" />
+                <h2>Kamera belum bisa dibuka</h2>
+                <p>{camState === 'unsupported'
+                  ? 'Browser ini tidak mendukung kamera. Kamu tetap bisa unggah foto dari galeri.'
+                  : 'Izinkan akses kamera di pengaturan browser, atau unggah foto dari galeri.'}</p>
+                {camState === 'blocked' && <button type="button" className="btn btn-lime btn-sm" onClick={() => setAttempt((n) => n + 1)}><span>Coba lagi</span></button>}
               </div>
             ) : (
-              <div className="preview">
-                <div className={`preview-frame ${processing ? 'is-scanning' : ''}`}>
-                  {preview && <img src={preview} alt="Foto buah yang diunggah" />}
-                  <ScanOverlay active={processing} />
-                  {!processing && <button type="button" onClick={reset} className="remove-image" aria-label="Hapus foto"><X size={18} /></button>}
+              <>
+                <div ref={frameRef} className="cam-frame" aria-hidden="true">
+                  <i className="corner tl" /><i className="corner tr" /><i className="corner bl" /><i className="corner br" />
                 </div>
-                <div className="preview-detail">
-                  <div><b>{file.name}</b><small>{(file.size / 1024 / 1024).toFixed(2)} MB</small></div>
-                  <button type="button" onClick={() => inputRef.current?.click()} className="link-button" disabled={processing}>Ganti foto</button>
-                </div>
-              </div>
+                <p className="cam-hint">Taruh buah di tengah bingkai</p>
+              </>
             )}
+          </div>
+        )}
 
-            {error && <div className="error-message" role="alert"><CircleAlert size={18} /><span>{error}</span></div>}
+        {hasPhoto && (
+          <div className="cam-photo">
+            <div className="cam-photo-frame">
+              {preview && <img src={preview} alt="Foto buah yang diperiksa" className={processing ? 'is-scanning' : ''} />}
+              <ScanOverlay active={processing} />
+            </div>
+          </div>
+        )}
+      </div>
 
-            {isDemoMode && (
-              <div className="demo-box">
-                <div>
-                  <b>Mode demo</b>
-                  <p>Model belum terhubung. Pilih contoh hasil yang ingin ditampilkan.</p>
-                </div>
-                <div className="segmented" role="group" aria-label="Contoh hasil">
-                  <button type="button" aria-pressed={demoLabel === 'fresh'} onClick={() => { setDemoLabel('fresh'); setResult(null); }}>Segar</button>
-                  <button type="button" aria-pressed={demoLabel === 'stale'} onClick={() => { setDemoLabel('stale'); setResult(null); }}>Tidak segar</button>
-                </div>
-              </div>
-            )}
+      {/* ---------- Logo ---------- */}
+      <header className="cam-top">
+        <Link to="/" className="cam-logo" aria-label="Fruitly, ke beranda">
+          <LogoMark size={30} />
+          <span>Fruitly</span>
+        </Link>
+      </header>
 
-            <button type="button" className="btn btn-red btn-block" onClick={analyze} disabled={!file || processing}>
-              {processing ? <><span className="spinner" /><span>Memeriksa foto…</span></> : <><ScanLine size={20} /><span>Periksa kesegaran</span></>}
+      {/* ---------- Tombol kamera ---------- */}
+      {!hasPhoto && (
+        <div className="cam-bottom">
+          {error && (
+            <div className="cam-toast" role="alert">
+              <CircleAlert size={18} /><span>{error}</span>
+              <button type="button" onClick={() => setError('')} aria-label="Tutup pesan"><X size={16} /></button>
+            </div>
+          )}
+          <div className="cam-controls">
+            <button type="button" className="cam-side" onClick={() => fileRef.current?.click()}>
+              <span className="cam-side-icon"><Upload size={24} /></span>
+              <span className="cam-side-label">Unggah</span>
             </button>
-          </Reveal>
 
-          {/* ------------- Hasil ------------- */}
-          <Reveal as="div" variant="right" delay={120} className="panel result-panel">
-            <h2 className="panel-title">Hasil</h2>
-            <section ref={resultRef} className="result-body" aria-live="polite" aria-label="Hasil pemeriksaan">
-              {processing ? (
-                <div className="result-loading">
-                  <span className="skeleton skeleton-pill" />
-                  <span className="skeleton skeleton-line" />
-                  <span className="skeleton skeleton-line short" />
-                  <span className="skeleton skeleton-bar" />
-                  <p>Memeriksa warna dan tekstur…</p>
-                </div>
-              ) : result ? (
-                <div className={`result-card ${fresh ? 'is-fresh' : 'is-stale'}`} key={`${result.label}-${result.confidence}`}>
-                  {result.isDemo && <span className="demo-tag">Contoh hasil</span>}
-                  <span className={`pill ${fresh ? 'pill-lime' : 'pill-red'} result-pill`}>{fresh ? 'Segar' : 'Tidak segar'}</span>
-                  <h3>{fresh ? 'Buahmu tampak segar.' : 'Buahmu tampak tidak segar.'}</h3>
-                  <p>
-                    {result.isDemo
-                      ? 'Ini hanya contoh tampilan. Hasil dari fotomu baru muncul setelah model terhubung.'
-                      : fresh
-                        ? 'Warna dan permukaan buah terlihat baik di foto ini.'
-                        : 'Foto ini menunjukkan tanda buah sudah tidak segar, seperti bercak atau warna yang kusam.'}
-                  </p>
-                  <div className="meter">
-                    <div className="meter-head"><span>Tingkat keyakinan{result.isDemo ? ' (contoh)' : ''}</span><b><CountUp value={result.confidence * 100} /></b></div>
-                    <div className="meter-track"><span style={{ width: fillBar ? `${result.confidence * 100}%` : '0%' }} /></div>
-                  </div>
-                  <p className="result-note">Hasil ini perkiraan dari tampilan foto. Cek juga aroma dan teksturnya sebelum dimakan.</p>
-                  <button className="link-button" type="button" onClick={reset}><RotateCcw size={16} /> Periksa foto lain</button>
-                </div>
-              ) : (
-                <div className="result-empty">
-                  <AppleScan className="apple-scan-compact" chip={false} />
-                  <h3>Belum ada hasil</h3>
-                  <p>Unggah foto, lalu tekan Periksa kesegaran.</p>
-                </div>
-              )}
-            </section>
-          </Reveal>
-        </div>
-      </section>
+            <button type="button" className="cam-shutter" onClick={capture} disabled={camState !== 'live'} aria-label="Ambil foto">
+              <span><Camera size={30} /></span>
+            </button>
 
-      <section className="detect-hint">
-        <div className="container">
-          <Reveal className="hint-row">
-            <span className="rule rule-lime"><span /></span>
-            <p>Hasilnya kurang pas? Coba foto ulang dengan cahaya cukup dan buah di tengah bingkai.</p>
-            <Link className="text-link" to="/guide"><span>Lihat tips foto</span><ArrowRight size={18} /></Link>
-          </Reveal>
+            <button type="button" className="cam-side" onClick={() => setFacing((f) => (f === 'environment' ? 'user' : 'environment'))} disabled={camState === 'unsupported'}>
+              <span className="cam-side-icon"><FlipIcon /></span>
+              <span className="cam-side-label">Balik</span>
+            </button>
+          </div>
         </div>
-      </section>
+      )}
+
+      {/* ---------- Hasil ---------- */}
+      {hasPhoto && (
+        <section className="cam-sheet" aria-live="polite" aria-label="Hasil pemeriksaan">
+          {processing ? (
+            <div className="sheet-loading">
+              <span className="spinner" />
+              <div><b>Memeriksa foto…</b><p>Memeriksa warna dan tekstur.</p></div>
+            </div>
+          ) : result ? (
+            <div className={`result-card ${fresh ? 'is-fresh' : 'is-stale'}`} key={`${result.label}-${result.confidence}`}>
+              <span className={`pill ${fresh ? 'pill-lime' : 'pill-red'} result-pill`}>{fresh ? 'Segar' : 'Tidak segar'}</span>
+              <h3>{fresh ? 'Buahmu tampak segar.' : 'Buahmu tampak tidak segar.'}</h3>
+              <div className="meter">
+                <div className="meter-head"><span>Tingkat keyakinan</span><b><CountUp value={result.confidence * 100} /></b></div>
+                <div className="meter-track"><span style={{ width: fillBar ? `${result.confidence * 100}%` : '0%' }} /></div>
+              </div>
+              <p className="result-note">Hasil ini perkiraan dari tampilan foto. Cek juga aroma dan teksturnya sebelum dimakan.</p>
+              <button type="button" className="btn btn-olive btn-block" onClick={reset}><RotateCcw size={18} /><span>Foto lagi</span></button>
+            </div>
+          ) : (
+            <div className="sheet-error" role="alert">
+              <div className="error-message"><CircleAlert size={18} /><span>{error || 'Foto belum bisa diperiksa.'}</span></div>
+              <div className="sheet-actions">
+                <button type="button" className="btn btn-olive btn-sm" onClick={() => file && void analyze(file)}><span>Coba lagi</span></button>
+                <button type="button" className="btn btn-ghost btn-sm" onClick={reset}><span>Foto lagi</span></button>
+              </div>
+            </div>
+          )}
+        </section>
+      )}
+
+      {installOpen && <InstallDialog onDone={finishInstall} />}
     </div>
   );
 }
