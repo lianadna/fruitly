@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, NavLink } from 'react-router-dom';
+import { Link, NavLink, useLocation } from 'react-router-dom';
 import { ArrowUpRight, Menu, X } from 'lucide-react';
 import { LogoMark } from './Illustrations';
 
@@ -10,6 +10,7 @@ const links = [
 ];
 
 export function Navbar() {
+  const { pathname } = useLocation();
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
@@ -27,7 +28,7 @@ export function Navbar() {
   }, []);
 
   return (
-    <header className={`site-header ${scrolled ? 'is-scrolled' : ''} ${open ? 'is-open' : ''}`}>
+    <header className={`site-header ${pathname === '/' ? 'is-hero' : ''} ${scrolled ? 'is-scrolled' : ''} ${open ? 'is-open' : ''}`}>
       <div className="container header-inner">
         <Link to="/" className="logo" aria-label="Fruitly, ke beranda" onClick={() => setOpen(false)}>
           <LogoMark size={32} />
@@ -41,12 +42,12 @@ export function Navbar() {
             </NavLink>
           ))}
           <Link className="btn btn-olive nav-cta-mobile" to="/detect" onClick={() => setOpen(false)}>
-            <span>Coba Fruitly</span><ArrowUpRight size={18} />
+            <span>Mulai cek buah</span><ArrowUpRight size={18} />
           </Link>
         </nav>
 
         <Link className="btn btn-olive btn-sm header-cta" to="/detect">
-          <span>Coba Fruitly</span><ArrowUpRight size={18} />
+          <span>Mulai cek buah</span><ArrowUpRight size={18} />
         </Link>
 
         <button type="button" className="menu-toggle" onClick={() => setOpen(!open)} aria-label={open ? 'Tutup menu' : 'Buka menu'} aria-expanded={open} aria-controls="menu-utama">

@@ -8,6 +8,7 @@ import './styles/layout.css';
 import './styles/motion.css';
 import './styles/home.css';
 import './styles/detect.css';
+import './styles/landing.css';
 import './styles/content.css';
 
 initPwa();

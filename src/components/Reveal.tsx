@@ -2,20 +2,20 @@ import { useEffect, useRef, useState } from 'react';
 import type { CSSProperties, ElementType, ReactNode } from 'react';
 import { prefersReducedMotion, registerDrift } from '../lib/motion';
 
-export function useInView<T extends HTMLElement>(threshold = 0.2, observeParent = false) {
+function useInView<T extends HTMLElement>(threshold = 0.2, observeParent = false) {
   const ref = useRef<T>(null);
-  const [seen, setSeen] = useState(false);
+  const [seen, setSeen] = useState(() => typeof window !== 'undefined' &&
+    (!('IntersectionObserver' in window) || prefersReducedMotion()));
   useEffect(() => {
     const el = ref.current;
-    if (!el) return;
-    if (!('IntersectionObserver' in window) || prefersReducedMotion()) { setSeen(true); return; }
+    if (!el || seen) return;
     const io = new IntersectionObserver(([entry]) => {
       if (entry.isIntersecting) { setSeen(true); io.disconnect(); }
     }, { threshold, rootMargin: '0px 0px -8% 0px' });
     // Elemen yang seluruhnya terpotong clip-path dianggap tak terlihat, jadi garis "draw" mengamati induknya.
     io.observe(observeParent ? el.parentElement ?? el : el);
     return () => io.disconnect();
-  }, [threshold, observeParent]);
+  }, [threshold, observeParent, seen]);
   return [ref, seen] as const;
 }
 
