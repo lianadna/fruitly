@@ -1,36 +1,73 @@
-export type FruitLabel = 'fresh' | 'stale';
+import { loadAndCompile, loadLiteRt, Tensor } from '@litertjs/core';
 
+export type FruitLabel = 'fresh' | 'stale';
 export type Prediction = {
   label: FruitLabel;
-  confidence: number; // 0..1
+  confidence: number;
   isDemo: boolean;
 };
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '');
-export const isDemoMode = !API_BASE_URL;
+export const isDemoMode = false;
 
-/**
- * Mode demo: hasil dipilih pengguna agar tidak menyesatkan sebagai prediksi nyata.
- * Mode API: POST multipart/form-data dengan field "file" ke /api/predict.
- * Respons yang didukung: { prediction: "fresh" | "stale", confidence: 0.94 }.
- */
-export async function predictFruit(file: File, simulatedLabel: FruitLabel): Promise<Prediction> {
-  if (!API_BASE_URL) {
-    await new Promise((resolve) => window.setTimeout(resolve, 750));
-    return { label: simulatedLabel, confidence: simulatedLabel === 'fresh' ? 0.94 : 0.91, isDemo: true };
+const modelDir = `${import.meta.env.BASE_URL}models`;
+const size = 224;
+
+async function loadModel() {
+  const response = await fetch(`${modelDir}/inference_config.json`);
+  if (!response.ok) throw new Error('Konfigurasi model tidak bisa dimuat.');
+  const { threshold } = await response.json() as { threshold: number };
+
+  await loadLiteRt('https://cdn.jsdelivr.net/npm/@litertjs/core@2.6.0/wasm/');
+  const model = await loadAndCompile(`${modelDir}/fruitly_best.tflite`, {
+    accelerator: 'wasm',
+  });
+  return { model, threshold };
+}
+
+let loading: ReturnType<typeof loadModel> | undefined;
+
+export async function predictFruit(file: File): Promise<Prediction> {
+  loading ??= loadModel().catch((error: unknown) => {
+    loading = undefined;
+    throw error;
+  });
+  const { model, threshold } = await loading;
+
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = size;
+  const context = canvas.getContext('2d');
+  if (!context) throw new Error('Browser tidak bisa memproses gambar.');
+
+  const image = await createImageBitmap(file);
+  try {
+    context.drawImage(image, 0, 0, size, size);
+  } finally {
+    image.close();
   }
 
-  const body = new FormData();
-  body.append('file', file);
-  const response = await fetch(`${API_BASE_URL}/api/predict`, { method: 'POST', body });
-  if (!response.ok) throw new Error(`Foto belum bisa diperiksa (kode ${response.status}). Coba lagi sebentar lagi.`);
-  const json: unknown = await response.json();
-  if (!json || typeof json !== 'object') throw new Error('Hasil dari server tidak bisa dibaca. Coba lagi sebentar lagi.');
-  const data = json as Record<string, unknown>;
-  const label = String(data.prediction ?? data.label ?? '').toLowerCase();
-  const confidence = Number(data.confidence);
-  if ((label !== 'fresh' && label !== 'stale') || !Number.isFinite(confidence)) {
-    throw new Error('Hasil dari server tidak lengkap. Coba lagi sebentar lagi.');
+  const rgba = context.getImageData(0, 0, size, size).data;
+  const rgb = new Float32Array(size * size * 3);
+  for (let src = 0, dst = 0; src < rgba.length; src += 4, dst += 3) {
+    rgb[dst] = rgba[src];
+    rgb[dst + 1] = rgba[src + 1];
+    rgb[dst + 2] = rgba[src + 2];
   }
-  return { label, confidence: Math.max(0, Math.min(1, confidence > 1 ? confidence / 100 : confidence)), isDemo: false };
+
+  const input = new Tensor(rgb, [1, size, size, 3]);
+  try {
+    const outputs = await model.run(input);
+    try {
+      const pStale = Number((await outputs[0].data())[0]);
+      const stale = pStale >= threshold;
+      return {
+        label: stale ? 'stale' : 'fresh',
+        confidence: stale ? pStale : 1 - pStale,
+        isDemo: false,
+      };
+    } finally {
+      outputs.forEach((output) => output.delete());
+    }
+  } finally {
+    input.delete();
+  }
 }

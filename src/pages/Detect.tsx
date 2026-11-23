@@ -80,7 +80,7 @@ export function Detect() {
     if (!file || processing) return;
     setProcessing(true); setError(''); setResult(null);
     try {
-      const [prediction] = await Promise.all([predictFruit(file, demoLabel), wait(MIN_SCAN_MS)]);
+      const [prediction] = await Promise.all([predictFruit(file), wait(MIN_SCAN_MS)]);
       setResult(prediction);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Foto belum bisa diperiksa. Coba lagi sebentar lagi.');
