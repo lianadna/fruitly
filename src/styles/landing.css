@@ -5,16 +5,6 @@
   --lp-navy: #0b193c;
 }
 
-.site-header.is-hero:not(.is-scrolled) {
-  background: transparent;
-  border-color: #ffffff38;
-  backdrop-filter: none;
-}
-.site-header.is-hero:not(.is-scrolled) :is(.logo, .nav-link, .menu-toggle) { color: #fff; }
-.site-header.is-hero:not(.is-scrolled) .nav-link::after { background: #fff; }
-.site-header.is-hero:not(.is-scrolled) .header-cta { --wipe: #ffe3d0; background: #fff; color: #9b300c; }
-.site-header.is-hero:not(.is-scrolled) .menu-toggle { background: #ffffff35; }
-
 .fruitly-landing { background: #fffdfb; }
 .fruitly-landing .container { width: min(1160px, calc(100% - clamp(2.5rem, 9vw, 8rem))); }
 .lp-h2 {
@@ -200,9 +190,6 @@
 .ft-bottom { padding-block: 1.25rem 2rem; border-top: 1px solid rgba(255, 255, 255, .12); font-size: .85rem; text-align: center; }
 
 
-@media (max-width: 860px) {
-  .site-header.is-hero:not(.is-scrolled) .header-nav .nav-link { color: var(--ink); }
-}
 @media (max-width: 700px) {
   .lp-hero-grid, .lp-how-card, .lp-finale-grid { grid-template-columns: 1fr; }
   .lp-hero-grid { gap: 1rem; }

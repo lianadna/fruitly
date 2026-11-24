@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, NavLink, useLocation } from 'react-router-dom';
+import { Link, NavLink } from 'react-router-dom';
 import { ArrowUpRight, Menu, X } from 'lucide-react';
 import { LogoMark } from './Illustrations';
 
@@ -10,7 +10,6 @@ const links = [
 ];
 
 export function Navbar() {
-  const { pathname } = useLocation();
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
@@ -28,7 +27,7 @@ export function Navbar() {
   }, []);
 
   return (
-    <header className={`site-header ${pathname === '/' ? 'is-hero' : ''} ${scrolled ? 'is-scrolled' : ''} ${open ? 'is-open' : ''}`}>
+    <header className={`site-header ${scrolled ? 'is-scrolled' : ''} ${open ? 'is-open' : ''}`}>
       <div className="container header-inner">
         <Link to="/" className="logo" aria-label="Fruitly, ke beranda" onClick={() => setOpen(false)}>
           <LogoMark size={32} />

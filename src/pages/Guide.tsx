@@ -1,61 +1,30 @@
 import { useState } from 'react';
-import { Check, ChevronDown, Focus, Image as ImageIcon, Sun, X } from 'lucide-react';
+import { Check, ChevronDown, X } from 'lucide-react';
+import { Apple, Doodle, Slice } from '../components/Illustrations';
 import { CtaBand } from '../components/CtaBand';
-import { Reveal } from '../components/Reveal';
-import { fruitPhotos, localPhotos } from '../lib/photos';
+import { Drift, Lines, Reveal } from '../components/Reveal';
 
 const howTo = [
-  { title: 'Mulai pengecekan', text: 'Ketuk “Mulai cek buah”. Kalau mau memotret langsung, izinkan akses kamera saat diminta.' },
-  { title: 'Ambil atau unggah foto', text: 'Ketuk tombol tengah untuk memotret atau tombol kiri untuk memilih foto dari galeri.' },
-  { title: 'Tunggu sebentar', text: 'Fruitly langsung mengecek foto yang kamu pilih atau ambil.' },
-  { title: 'Baca hasilnya', text: 'Hasilnya akan muncul sebagai Segar atau Tidak segar.' },
-];
-
-const tips = [
-  {
-    icon: Sun,
-    title: 'Cahaya',
-    instruction: 'Coba foto dekat jendela supaya buah kelihatan jelas.',
-    photo: fruitPhotos.apple,
-    goodCaption: 'Terang dan merata',
-    badCaption: 'Terlalu gelap',
-    example: 'dark',
-  },
-  {
-    icon: Focus,
-    title: 'Posisi',
-    instruction: 'Dekatkan kamera sampai tekstur kulit buah terlihat jelas.',
-    photo: fruitPhotos.orange,
-    goodCaption: 'Buah memenuhi bingkai',
-    badCaption: 'Buah terlalu jauh',
-    example: 'far',
-  },
-  {
-    icon: ImageIcon,
-    title: 'Latar',
-    instruction: 'Letakkan satu buah di permukaan yang polos.',
-    photo: fruitPhotos.banana,
-    badPhoto: localPhotos.table,
-    goodCaption: 'Satu buah, latar polos',
-    badCaption: 'Banyak benda di sekitar buah',
-    example: 'busy',
-  },
+  { title: 'Tekan Coba Fruitly', text: 'Tombolnya ada di menu atas dan di beranda. Kamera langsung terbuka.' },
+  { title: 'Ambil atau unggah foto', text: 'Tekan tombol kamera di tengah untuk memotret, atau tombol unggah di kiri untuk memilih foto JPG, PNG, atau WEBP (maksimal 5 MB) dari galeri.' },
+  { title: 'Tunggu sebentar', text: 'Fruitly langsung memeriksa fotonya. Tunggu sampai garis pindai selesai bergerak.' },
+  { title: 'Baca hasilnya', text: 'Kamu akan melihat Segar atau Tidak segar, lengkap dengan persentase keyakinan.' },
 ];
 
 const faqs = [
-  { q: 'Kalau hasilnya Segar, buahnya pasti aman dimakan?', a: 'Belum tentu. Fruitly cuma melihat bagian buah yang tampak di foto. Sebelum dimakan, cek juga aroma, tekstur, dan bagian dalamnya.' },
-  { q: 'Buah apa saja yang bisa dicek?', a: 'Fruitly dibuat untuk mengecek apel, jeruk, dan pisang.' },
-  { q: 'Kenapa hasilnya beda dari yang aku kira?', a: 'Coba cek fotonya. Kalau buram, gelap, atau buahnya terlalu kecil di layar, ambil ulang dari dekat di tempat yang lebih terang.' },
-  { q: 'Foto apa yang bisa diunggah?', a: 'JPG, PNG, dan WEBP dengan ukuran maksimal 5 MB.' },
+  { q: 'Apakah hasil Fruitly menjamin buah aman dimakan?', a: 'Tidak. Fruitly hanya menilai tampilan buah di foto. Aroma, rasa, dan kondisi bagian dalam tidak ikut dinilai, jadi tetap periksa langsung sebelum makan.' },
+  { q: 'Buah apa saja yang bisa dicek?', a: 'Fruitly paling akurat untuk jenis buah yang ada di data latihnya. Buah lain tetap bisa dicoba, tapi hasilnya bisa kurang tepat.' },
+  { q: 'Kenapa hasilnya tidak sesuai dugaanku?', a: 'Biasanya karena foto kurang jelas, terlalu gelap, atau buah tidak berada di tengah bingkai. Coba foto ulang dengan mengikuti tips di atas.' },
+  { q: 'Format dan ukuran foto apa yang didukung?', a: 'JPG, PNG, dan WEBP dengan ukuran maksimal 5 MB.' },
 ];
 
-function Frame({ good, caption, photo, example = '' }: { good: boolean; caption: string; photo: string; example?: string }) {
+function Frame({ good, caption, children }: { good: boolean; caption: string; children: React.ReactNode }) {
   return (
-    <figure className="tip-frame">
-      <div className={`tip-shot ${example}`}>
-        <img src={photo} alt="" loading="lazy" />
-        <span className={`tip-badge ${good ? '' : 'is-bad'}`} aria-hidden="true">
-          {good ? <Check size={17} strokeWidth={3} /> : <X size={17} strokeWidth={3} />}
+    <figure className={`tip-frame ${good ? 'is-good' : 'is-bad'}`}>
+      <div className="tip-shot">
+        {children}
+        <span className="tip-badge" aria-label={good ? 'Contoh yang bagus' : 'Contoh yang sebaiknya dihindari'}>
+          {good ? <Check size={18} strokeWidth={3} /> : <X size={18} strokeWidth={3} />}
         </span>
       </div>
       <figcaption>{caption}</figcaption>
@@ -67,86 +36,128 @@ export function Guide() {
   const [open, setOpen] = useState<number | null>(0);
 
   return (
-    <div className="fruitly-landing">
-      <div className="container guide-start">
-        <header className="guide-intro">
-          <h1 className="content-title" id="guide-title">Panduan cek buah</h1>
-          <p>Siapkan satu apel, jeruk, atau pisang yang ingin kamu cek.</p>
-          <nav aria-label="Isi panduan">
-            <ul className="guide-index">
-              <li><a href="#cara-pakai">Langkah cek buah</a></li>
-              <li><a href="#tips-foto">Tips foto</a></li>
-              <li><a href="#baca-hasil">Cara membaca hasil</a></li>
-              <li><a href="#faq">Tanya jawab</a></li>
-            </ul>
-          </nav>
-        </header>
-
-        <section className="guide-steps" id="cara-pakai" aria-labelledby="guide-steps-title">
-          <h2 id="guide-steps-title">Langkah cek buah</h2>
-          <ol className="lp-steps guide-step-list" role="list">
-            {howTo.map(({ title, text }, i) => (
-              <Reveal as="li" key={title} delay={i * 80}>
-                <span className="lp-step-icon" aria-hidden="true">{i + 1}</span>
-                <div><h3>{title}</h3><p>{text}</p></div>
-              </Reveal>
-            ))}
-          </ol>
-        </section>
-      </div>
-
-      <section className="guide-tips" id="tips-foto" aria-labelledby="guide-tips-title">
+    <div className="guide-page">
+      <section className="page-head">
+        <Drift className="deco head-lemon" speed={0.1}><Slice kind="lemon" className="slice" /></Drift>
+        <Drift className="deco head-strawberry" speed={0.06}><Doodle kind="strawberry" className="doodle" /></Drift>
         <div className="container">
-          <div className="lp-head">
-            <h2 className="lp-h2" id="guide-tips-title">Tips foto</h2>
-          </div>
-          <div className="guide-tip-grid">
-            {tips.map(({ icon: Icon, title, instruction, photo, badPhoto, goodCaption, badCaption, example }, i) => (
-              <Reveal as="article" variant="rise" key={title} delay={i * 85} className="content-card guide-tip">
-                <h3><Icon size={22} aria-hidden="true" />{title}</h3>
-                <p>{instruction}</p>
-                <div className="tip-pair">
-                  <Frame good caption={goodCaption} photo={photo} />
-                  <Frame good={false} caption={badCaption} photo={badPhoto ?? photo} example={example} />
-                </div>
-              </Reveal>
-            ))}
-          </div>
-          <Reveal as="p" className="lp-muted guide-tip-note">Hindari filter. Kalau ada bercak atau bagian yang keriput, pastikan bagian itu ikut terlihat.</Reveal>
+          <h1 className="display-sm"><Lines lines={['Panduan']} /></h1>
+          <Reveal as="p" className="lead" delay={240}>Cara memakai Fruitly dan tips supaya hasilnya lebih tepat.</Reveal>
         </div>
       </section>
 
-      <section className="lp-results" id="baca-hasil" aria-labelledby="guide-results-title">
-        <div className="container">
-          <h2 className="lp-h2" id="guide-results-title">Cara membaca hasil</h2>
-          <div className="lp-result-grid">
-            <Reveal as="article" className="lp-result content-hover">
-              <h3><span className="lp-status fresh" aria-hidden="true" />Segar</h3>
-              <p>Buah terlihat segar di foto. Contohnya, warnanya masih cerah dan kulitnya mulus.</p>
-            </Reveal>
-            <Reveal as="article" delay={100} className="lp-result content-hover">
-              <h3><span className="lp-status stale" aria-hidden="true" />Tidak segar</h3>
-              <p>Ada tanda buah mulai rusak, misalnya bercak gelap, warna kusam, atau kulit keriput.</p>
-            </Reveal>
+      {/* ------------- Cara pakai ------------- */}
+      <section className="section guide-how">
+        <div className="container guide-how-grid">
+          <div className="section-head">
+            <h2 className="h2"><Lines lines={['Cara', 'memakainya']} /></h2>
           </div>
-          <Reveal as="p" className="lp-muted guide-result-note">Angka persen menunjukkan seberapa yakin Fruitly dengan hasilnya. Kalau angkanya rendah, coba ambil foto yang lebih jelas.</Reveal>
+          <div className="how-wrap">
+            <ol className="how-list">
+              {howTo.map((step, i) => (
+                <Reveal as="li" key={step.title} delay={i * 110} className="how-item">
+                  <span className="step-node">{i + 1}</span>
+                  <div><h3>{step.title}</h3><p>{step.text}</p></div>
+                </Reveal>
+              ))}
+            </ol>
+          </div>
         </div>
       </section>
 
-      <section className="section" id="faq" aria-labelledby="faq-title">
+      {/* ------------- Tips foto ------------- */}
+      <section className="section guide-tips">
+        <div className="container">
+          <div className="section-head">
+            <h2 className="h2"><Lines lines={['Tips', 'mengambil foto']} /></h2>
+            <Reveal as="p" className="lead" delay={200}>Tiga hal ini paling berpengaruh pada hasil.</Reveal>
+          </div>
+
+          <div className="tips-grid">
+            <Reveal variant="rise" className="tip">
+              <span className="pill pill-red">Cahaya</span>
+              <div className="tip-pair">
+                <Frame good caption="Terang dan merata"><Apple state="fresh" className="tip-apple" /></Frame>
+                <Frame good={false} caption="Gelap atau silau"><Apple state="fresh" className="tip-apple tip-apple-dark" /></Frame>
+              </div>
+            </Reveal>
+
+            <Reveal variant="rise" delay={120} className="tip">
+              <span className="pill pill-lime">Posisi</span>
+              <div className="tip-pair">
+                <Frame good caption="Di tengah, memenuhi bingkai"><Apple state="fresh" className="tip-apple" /></Frame>
+                <Frame good={false} caption="Kecil dan terlalu jauh"><Apple state="fresh" className="tip-apple tip-apple-far" /></Frame>
+              </div>
+            </Reveal>
+
+            <Reveal variant="rise" delay={240} className="tip">
+              <span className="pill pill-red">Latar</span>
+              <div className="tip-pair">
+                <Frame good caption="Polos, satu buah"><Apple state="fresh" className="tip-apple" /></Frame>
+                <Frame good={false} caption="Ramai, banyak benda">
+                  <span className="tip-clutter" aria-hidden="true">
+                    <Doodle kind="pear" className="doodle c1" /><Doodle kind="banana" className="doodle c2" /><Doodle kind="cherry" className="doodle c3" /><Doodle kind="strawberry" className="doodle c4" />
+                  </span>
+                  <Apple state="fresh" className="tip-apple tip-apple-mid" />
+                </Frame>
+              </div>
+            </Reveal>
+          </div>
+
+          <ul className="extra-tips">
+            {[
+              'Tahan ponsel beberapa detik supaya fotonya tidak buram.',
+              'Matikan filter dan mode kecantikan.',
+              'Arahkan kamera ke sisi buah yang paling menunjukkan kondisinya, misalnya bagian yang ada bercak.',
+            ].map((text, i) => (
+              <Reveal as="li" key={text} delay={i * 110}><span className="rule rule-lime"><span /></span><span>{text}</span></Reveal>
+            ))}
+          </ul>
+        </div>
+      </section>
+
+      {/* ------------- Membaca hasil ------------- */}
+      <section className="section guide-read">
+        <div className="container">
+          <div className="section-head">
+            <h2 className="h2"><Lines lines={['Cara membaca', 'hasilnya']} /></h2>
+          </div>
+        </div>
+        <div className="container two-col">
+          <Reveal variant="left" className="text-block">
+            <span className="pill pill-lime">Segar</span>
+            <p>Buah di foto tampak baik: warna cerah, kulit mulus, tidak ada tanda kerusakan.</p>
+          </Reveal>
+          <Reveal variant="right" delay={140} className="text-block">
+            <span className="pill pill-red">Tidak segar</span>
+            <p>Ada tanda buah mulai rusak, seperti bercak gelap, warna kusam, atau kulit keriput.</p>
+          </Reveal>
+        </div>
+        <div className="container">
+          <Reveal className="note">
+            <span className="rule rule-red"><span /></span>
+            <p>Persentase menunjukkan seberapa yakin sistem dengan hasilnya. Kalau angkanya rendah, coba foto ulang dengan cahaya yang lebih baik.</p>
+          </Reveal>
+        </div>
+      </section>
+
+      {/* ------------- FAQ ------------- */}
+      <section className="section guide-faq">
         <div className="container faq-wrap">
-          <h2 className="lp-h2" id="faq-title">Tanya jawab</h2>
+          <div className="section-head">
+            <h2 className="h2"><Lines lines={['Pertanyaan', 'yang sering muncul']} /></h2>
+          </div>
           <div className="faq-list">
-            {faqs.map(({ q, a }, i) => {
+            {faqs.map((item, i) => {
               const isOpen = open === i;
               return (
-                <Reveal key={q} delay={i * 70} className={`faq-item ${isOpen ? 'is-open' : ''}`}>
+                <Reveal key={item.q} delay={i * 90} className={`faq-item ${isOpen ? 'is-open' : ''}`}>
                   <h3>
                     <button type="button" aria-expanded={isOpen} aria-controls={`faq-${i}`} onClick={() => setOpen(isOpen ? null : i)}>
-                      <span>{q}</span><ChevronDown size={21} aria-hidden="true" />
+                      <span>{item.q}</span><ChevronDown size={22} />
                     </button>
                   </h3>
-                  <div className="faq-answer" id={`faq-${i}`} aria-hidden={!isOpen}><div><p>{a}</p></div></div>
+                  <div className="faq-answer" id={`faq-${i}`} role="region"><div><p>{item.a}</p></div></div>
                 </Reveal>
               );
             })}
@@ -154,7 +165,7 @@ export function Guide() {
         </div>
       </section>
 
-      <CtaBand title="Cek buahmu" text="Kamu bisa pakai kamera atau foto yang sudah ada di galeri." />
+      <CtaBand title="Sudah siap? Coba dengan buahmu." text="Satu foto cukup untuk mulai." />
     </div>
   );
 }
