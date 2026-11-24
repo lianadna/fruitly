@@ -3,7 +3,7 @@ import type { ChangeEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { Camera, CircleAlert, RotateCcw, Upload, X } from 'lucide-react';
 import { predictFruit } from '../services/prediction';
-import type { Prediction } from '../services/prediction';
+import type { FruitCheckResult } from '../services/prediction';
 import { ScanOverlay } from '../components/AppleScan';
 import { InstallDialog } from '../components/InstallDialog';
 import { LogoMark } from '../components/Illustrations';
@@ -64,7 +64,7 @@ export function Detect() {
   const [preview, setPreview] = useState<string | null>(null);
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState('');
-  const [result, setResult] = useState<Prediction | null>(null);
+  const [result, setResult] = useState<FruitCheckResult | null>(null);
   const [fillBar, setFillBar] = useState(false);
 
   /* ---------- Dialog install ---------- */
@@ -113,7 +113,7 @@ export function Detect() {
 
   useEffect(() => {
     setFillBar(false);
-    if (!result) return;
+    if (!result || result.label === 'no-fruit') return;
     const id = window.setTimeout(() => setFillBar(true), 80);
     return () => window.clearTimeout(id);
   }, [result]);
@@ -172,6 +172,7 @@ export function Detect() {
   };
 
   const fresh = result?.label === 'fresh';
+  const noFruit = result?.label === 'no-fruit';
   const hasPhoto = file !== null;
   const camBlocked = camState === 'blocked' || camState === 'unsupported';
 
@@ -208,7 +209,7 @@ export function Detect() {
         {hasPhoto && (
           <div className="cam-photo">
             <div className="cam-photo-frame">
-              {preview && <img src={preview} alt="Foto buah yang diperiksa" className={processing ? 'is-scanning' : ''} />}
+              {preview && <img src={preview} alt="Foto yang diperiksa" className={processing ? 'is-scanning' : ''} />}
               <ScanOverlay active={processing} />
             </div>
           </div>
@@ -256,9 +257,9 @@ export function Detect() {
           {processing ? (
             <div className="sheet-loading">
               <span className="spinner" />
-              <div><b>Memeriksa foto…</b><p>Memeriksa warna dan tekstur.</p></div>
+              <div><b>Memeriksa foto…</b><p>Mencari buah dan mengecek kesegarannya.</p></div>
             </div>
-          ) : result ? (
+          ) : result && result.label !== 'no-fruit' ? (
             <div className={`result-card ${fresh ? 'is-fresh' : 'is-stale'}`} key={`${result.label}-${result.confidence}`}>
               <span className={`pill ${fresh ? 'pill-lime' : 'pill-red'} result-pill`}>{fresh ? 'Segar' : 'Tidak segar'}</span>
               <h3>{fresh ? 'Buahmu tampak segar.' : 'Buahmu tampak tidak segar.'}</h3>
@@ -270,11 +271,14 @@ export function Detect() {
               <button type="button" className="btn btn-olive btn-block" onClick={reset}><RotateCcw size={18} /><span>Foto lagi</span></button>
             </div>
           ) : (
-            <div className="sheet-error" role="alert">
-              <div className="error-message"><CircleAlert size={18} /><span>{error || 'Foto belum bisa diperiksa.'}</span></div>
+            <div className="sheet-error" role={noFruit ? undefined : 'alert'}>
+              <div className="error-message">
+                <CircleAlert size={18} aria-hidden="true" />
+                <span>{noFruit ? 'Buah tidak terdeteksi. Coba foto satu apel, jeruk, atau pisang dari dekat.' : error || 'Foto belum bisa diperiksa.'}</span>
+              </div>
               <div className="sheet-actions">
-                <button type="button" className="btn btn-olive btn-sm" onClick={() => file && void analyze(file)}><span>Coba lagi</span></button>
-                <button type="button" className="btn btn-ghost btn-sm" onClick={reset}><span>Foto lagi</span></button>
+                {!noFruit && <button type="button" className="btn btn-olive btn-sm" onClick={() => file && void analyze(file)}><span>Coba lagi</span></button>}
+                <button type="button" className={`btn btn-sm ${noFruit ? 'btn-olive' : 'btn-ghost'}`} onClick={reset}><span>Foto lagi</span></button>
               </div>
             </div>
           )}

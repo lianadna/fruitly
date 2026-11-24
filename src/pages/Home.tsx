@@ -4,6 +4,13 @@ import { AppleScan } from '../components/AppleScan';
 import { Apple, Doodle, Slice } from '../components/Illustrations';
 import { CtaBand } from '../components/CtaBand';
 import { Drift, Lines, Reveal } from '../components/Reveal';
+import { fruitPhotos } from '../lib/photos';
+
+const supportedFruits = [
+  { name: 'Apel', photo: fruitPhotos.apple, tone: 'pink', tip: 'Hadapkan sisi yang ada bercaknya ke kamera.' },
+  { name: 'Jeruk', photo: fruitPhotos.orange, tone: 'sun', tip: 'Ambil foto dari dekat supaya tekstur kulitnya terlihat.' },
+  { name: 'Pisang', photo: fruitPhotos.banana, tone: 'lime', tip: 'Foto satu pisang supaya kulitnya terlihat jelas.' },
+];
 
 const steps = [
   { title: 'Unggah foto', text: 'Pilih foto dari galeri, atau ambil langsung dengan kamera ponsel.', tone: 'red' },
@@ -40,6 +47,24 @@ export function Home() {
         </div>
 
         <Reveal variant="draw" className="rule rule-red hero-rule" delay={700}><span /></Reveal>
+      </section>
+
+      <section className="section" aria-labelledby="supported-fruits-title">
+        <div className="container">
+          <div className="section-head">
+            <h2 className="h2" id="supported-fruits-title">Buah yang bisa dicek</h2>
+            <p className="lead">Fruitly memperkirakan apakah apel, jeruk, atau pisang tampak segar atau tidak dari fotonya.</p>
+          </div>
+          <div className="lp-fruit-grid">
+            {supportedFruits.map(({ name, photo, tone, tip }) => (
+              <article className={`lp-fruit tone-${tone}`} key={name}>
+                <h3>{name}</h3>
+                <p>{tip}</p>
+                <img src={photo} alt="" loading="lazy" />
+              </article>
+            ))}
+          </div>
+        </div>
       </section>
 
       {/* ---------------- Dua hasil ---------------- */}
