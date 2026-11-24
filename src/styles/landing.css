@@ -171,24 +171,11 @@
 .lp-tip-card svg { color: var(--lp-blue); margin-bottom: .4rem; }
 
 .lp-finale { padding-block: clamp(2.5rem, 6vw, 5rem); background: var(--lp-navy); color: #fff; }
+.lp-finale.tone-red { background: var(--red-dark); }
+.lp-finale.tone-red .lp-finale-copy p { color: var(--blush); }
 .lp-finale-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: clamp(1.5rem, 5vw, 4.5rem); align-items: center; }
 .lp-finale-photo img { display: block; width: 100%; max-height: 350px; aspect-ratio: 1.5; object-fit: cover; object-position: left; border-radius: 26px; }
 .lp-finale-copy p { max-width: 24rem; margin: .85rem 0 1.15rem; color: #e1e6f2; }
-
-/* ---------- Footer gelap ---------- */
-.ft { background: var(--lp-navy); color: rgba(255, 255, 255, .72); }
-.ft-inner { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2rem 3rem; padding-block: 2.5rem 2.5rem; border-top: 1px solid rgba(255, 255, 255, .12); }
-.ft-logo { display: inline-flex; align-items: center; gap: .55rem; font-size: 1.5rem; font-weight: 600; letter-spacing: -0.02em; color: #fff; }
-.ft-logo svg { transition: transform .5s var(--ease); }
-.ft-logo:hover svg { transform: rotate(-14deg) scale(1.1); }
-.ft-brand p { max-width: 16rem; margin: .7rem 0 0; font-size: .92rem; line-height: 1.55; }
-.ft-cols { display: flex; flex-wrap: wrap; gap: 2rem 4rem; }
-.ft-cols div { display: flex; flex-direction: column; gap: .55rem; }
-.ft-cols h2 { margin: 0 0 .25rem; color: #fff; font-size: .95rem; font-weight: 600; }
-.ft-cols a { font-size: .92rem; transition: color .2s; }
-.ft-cols a:hover { color: #fff; }
-.ft-bottom { padding-block: 1.25rem 2rem; border-top: 1px solid rgba(255, 255, 255, .12); font-size: .85rem; text-align: center; }
-
 
 @media (max-width: 700px) {
   .lp-hero-grid, .lp-how-card, .lp-finale-grid { grid-template-columns: 1fr; }

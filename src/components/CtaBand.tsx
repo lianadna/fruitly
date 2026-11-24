@@ -3,9 +3,9 @@ import { ArrowUpRight } from 'lucide-react';
 import { fruitPhotos } from '../lib/photos';
 import { Reveal } from './Reveal';
 
-export function CtaBand({ title, text }: { title: string; text: string }) {
+export function CtaBand({ title, text, tone = 'navy' }: { title: string; text: string; tone?: 'navy' | 'red' }) {
   return (
-    <section className="lp-finale content-cta">
+    <section className={`lp-finale content-cta tone-${tone}`}>
       <div className="container lp-finale-grid">
         <Reveal variant="pop" className="content-cta-art">
           <img src={fruitPhotos.orange} alt="" loading="lazy" />

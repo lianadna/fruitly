@@ -99,7 +99,7 @@ export function About() {
         </div>
       </section>
 
-      <CtaBand title="Sudah paham? Coba dengan fotomu." text="Pilih satu buah dan lihat hasilnya." />
+      <CtaBand title="Sudah paham? Coba dengan fotomu." text="Pilih satu buah dan lihat hasilnya." tone="red" />
     </div>
   );
 }

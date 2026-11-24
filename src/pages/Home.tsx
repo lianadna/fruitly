@@ -129,7 +129,7 @@ export function Home() {
         </div>
       </section>
 
-      <CtaBand title="Ragu sama buah di dapurmu?" text="Foto sekarang dan lihat hasilnya." />
+      <CtaBand title="Ragu sama buah di dapurmu?" text="Foto sekarang dan lihat hasilnya." tone="red" />
     </>
   );
 }

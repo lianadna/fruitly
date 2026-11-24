@@ -93,7 +93,15 @@
   .hero-copy .display { font-size: clamp(3.3rem, 15vw, 5.6rem); }
   .hero-stage { width: min(88%, 400px); margin-top: 1rem; }
   .hero .scan-chip { left: -6%; }
-  .hero-arc { width: 170vw; right: -35vw; top: auto; bottom: -64vw; }
+  .hero-arc {
+    --arc-diameter: 170vw;
+    /* Letakkan puncak lingkaran sejajar dengan bagian atas ilustrasi pindai. */
+    --scan-height: calc(min((100vw - 2.5rem) * .88, 400px) * 420 / 400);
+    width: var(--arc-diameter);
+    right: -35vw;
+    top: auto;
+    bottom: calc(4rem + var(--scan-height) - var(--arc-diameter));
+  }
   .hero-lemon { left: -12%; bottom: auto; top: 54%; width: 130px; }
   .hero-orange { left: auto; right: 4%; top: 1.2%; width: 72px; }
   .hero-kiwi { right: 3%; bottom: 7%; width: 84px; }
