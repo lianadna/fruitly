@@ -1,14 +1,22 @@
 {
-  "experiment": "v2_transfer",
-  "model_name": "mobilenetv2",
+  "run_id": "fruitly_research_20261124_144727",
   "model_file": "fruitly_best.keras",
+  "model_name": "mobilenetv2",
   "labels": {
     "0": "fresh",
     "1": "stale"
   },
+  "threshold": 0.95,
+  "threshold_selection": "highest threshold with validation stale recall >= 0.93",
+  "minimum_validation_stale_recall": 0.93,
+  "image_size": [
+    224,
+    224
+  ],
+  "color_mode": "RGB",
+  "pixel_scale": "0_to_255 input; model-specific preprocessing internal",
+  "seed": 42,
   "positive_class": "stale",
-  "threshold": 0.5,
-  "threshold_selection": "validation balanced_accuracy",
   "input": {
     "size": [
       224,
@@ -16,10 +24,12 @@
     ],
     "channels": 3,
     "dtype": "float32",
-    "range": "0-255 (TANPA dibagi 255)"
+    "range": [
+      0,
+      255
+    ]
   },
-  "resize": "PIL Image.resize((224,224), Image.BILINEAR) setelah convert(\"RGB\")",
   "preprocessing_inside_model": true,
   "output": "P(stale) sigmoid",
-  "created_at": "2026-11-22T16:15:17"
+  "created_at": "2026-11-24T15:32:29"
 }
